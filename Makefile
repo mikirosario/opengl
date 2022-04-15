@@ -2,11 +2,15 @@ NAME = opengl
 
 SRCDIR = ./src
 
+GLEWDIR = ./glew-2.2.0/src
+
 GRN = \e[1;32m
 RED = \e[1;31m
 YEL = \e[1;33m
 DEL = \e[2K\r
 RST = \e[0m
+
+CC = gcc
 
 CXX = clang++
 
@@ -25,7 +29,7 @@ CXXFLAGS = -Wall -Werror -Wextra -g
 all: $(NAME)
 
 $(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(NAME) $(OBJS) -L ./lib_glfw -lglfw3 -lX11 -ldl -lGL -lpthread
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(NAME) $(OBJS) -L ./lib_glfw -L ./lib_glew -lglfw3 -lGLEW -lX11 -ldl -lGL -lpthread
 
 clean:
 	@printf "$(YEL)Deleting object files...$(RST)"

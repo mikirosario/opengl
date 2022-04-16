@@ -2,8 +2,72 @@
 #include "../include/GLFW/glfw3.h"
 
 #include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
 #include <cassert>
 
+
+struct ShaderProgramSource
+{
+	std::string	VertexSource;
+	std::string FragmentSource;
+};
+
+
+inline static void GetNextShader(std::ifstream & stream, std::string & line)
+{
+	while (std::getline(stream, line))
+		if (line.find("#shader") != std::string::npos)
+			return;
+}
+
+static bool GetVFShaderSources(ShaderProgramSource & vf_shadersources, std::string const & filepath)
+{
+	enum ShaderType {
+		VERTEX,
+		FRAGMENT
+	}					shader_type;
+	std::size_t			shaders_found = 0;
+	std::ifstream		stream(filepath); //open file
+	std::string			line;
+	std::stringstream	ss[2];
+
+	if (stream.is_open() == true)
+	{
+		GetNextShader(stream, line);
+		while (stream.good() == true && shaders_found < 3)
+		{
+			if (line.find("#shader") != std::string::npos)			//on finding shader hash
+			{
+				if (line.find("vertex") != std::string::npos)			//set vertex shader mode
+					shader_type = ShaderType::VERTEX;
+				else if (line.find("fragment") != std::string::npos)	//set fragment shader mode
+					shader_type = ShaderType::FRAGMENT;
+				else
+					break ;												//bad shader define
+				++shaders_found;
+			}
+			else
+				ss[shader_type] << line << '\n';
+			std::getline(stream, line);
+		}
+		if (stream.bad() == true)
+			std::cerr << "GetVFShaderSources failed on Unknown getline problem." << std::endl;
+		else if (ss[ShaderType::VERTEX].rdbuf()->in_avail() == 0 || ss[ShaderType::FRAGMENT].rdbuf()->in_avail() == 0)
+			std::cerr << "GetVFShaderSources failed on Source file missing at least one of Vertex or Fragment shaders." << std::endl;
+		else
+		{
+			ss[shader_type] << line << '\n';
+			vf_shadersources.VertexSource = ss[ShaderType::VERTEX].str();
+			vf_shadersources.FragmentSource = ss[ShaderType::FRAGMENT].str();
+			return true;
+		}
+	}
+	else
+		std::cerr << "GetVFShaderSources failed on file open failure; check filepath." << std::endl;
+	return false;
+}
 
 static uint	CompileShader(uint type, std::string const & source)
 {
@@ -93,25 +157,33 @@ int main(void)
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2, 0);	//set pointer to vertex index 0, length 2 elements, type float, already normalized, size 8 bytes, offset 0 from vertex start
 	glEnableVertexAttribArray(0);											//enable vertex
 
-	std::string vertex_shader = R"delim(
-	#version 330 core
-	layout(location = 0) in vec4 position;
-	void main(void)
+	// std::string vertex_shader = R"delim(
+	// #version 330 core
+	// layout(location = 0) in vec4 position;
+	// void main(void)
+	// {
+	// 	gl_Position = position;
+	// }
+	// )delim";
+
+	// std::string fragment_shader = R"delim(
+	// #version 330 core
+	// layout(location = 0) out vec4 color;
+	// void main(void)
+	// {			//    R    G    B    A
+	// 	color = vec4(1.0, 0.0, 0.0, 1.0);
+	// }
+	// )delim";
+
+	ShaderProgramSource	source;
+	
+	if (GetVFShaderSources(source, "res/shaders/basic.shader") == false)
 	{
-		gl_Position = position;
+		glfwTerminate();
+		return -1;
 	}
-	)delim";
 
-	std::string fragment_shader = R"delim(
-	#version 330 core
-	layout(location = 0) out vec4 color;
-	void main(void)
-	{			//    R    G    B    A
-		color = vec4(1.0, 0.0, 0.0, 1.0);
-	}
-	)delim";
-
-	uint shader = CreateShader(vertex_shader, fragment_shader);
+	uint shader = CreateShader(source.VertexSource, source.FragmentSource);
 	glUseProgram(shader);								//select shader
 
     /* Loop until the user closes the window */
@@ -136,7 +208,7 @@ int main(void)
         glfwPollEvents();
     }
 
-	glDeleteProgram(shader);							//delete shader program
+	//glDeleteProgram(shader);							//delete shader program
 
     glfwTerminate();
     return 0;

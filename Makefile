@@ -12,9 +12,15 @@ RST = \e[0m
 
 CC = gcc
 
+CFLAGS = -I ./include
+
 CXX = clang++
 
 SRCFILES = $(SRCDIR)/main.cpp
+
+GLEWFILE = $(SRCDIR)/glew.c
+
+GLEWOBJ = $(GLEWFILE:.c=.o)
 
 OBJS = $(SRCFILES:.cpp=.o)
 
@@ -28,12 +34,12 @@ CXXFLAGS = -Wall -Werror -Wextra -g
 
 all: $(NAME)
 
-$(NAME): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(NAME) $(OBJS) -L ./lib_glfw -L ./lib_glew -lglfw3 -lGLEW -lX11 -ldl -lGL -lpthread
+$(NAME): $(OBJS) $(GLEWOBJ)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(NAME) $(OBJS) $(GLEWOBJ) -L ./lib_glfw -lglfw3 -lX11 -ldl -lGL -lpthread
 
 clean:
 	@printf "$(YEL)Deleting object files...$(RST)"
-	@rm $(OBJS) 2>/dev/null || true
+	@rm $(OBJS) $(GLEWOBJ) 2>/dev/null || true
 	@printf "$(DEL)$(GRN)Deleted object files\n$(RST)"
 
 fclean: clean
